@@ -1,0 +1,1 @@
+pytest -v --cov=src --cov-report=html tests/

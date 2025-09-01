@@ -63,15 +63,10 @@ def get_n_pull_requests(num_prs: int, repo: str):
         raise HTTPException(status_code=400, detail="Invalid repo format")
 
     url = f"{GITHUB_API_URL}/repos/{owner}/{repo_name}/pulls"
-    params = {
-        'state': 'all',
-        'per_page': int(min(num_prs, 100)),
-        'sort': 'updated',
-        'direction': 'desc'
-    }  # type: ignore
+    params = {'state': 'all', 'per_page': int(min(num_prs, 100)), 'sort': 'updated', 'direction': 'desc'}
 
     try:
-        response = requests.get(url, headers=get_github_headers(), params=params)
+        response = requests.get(url, headers=get_github_headers(), params=params)  # type: ignore
         response.raise_for_status()
         pull_requests = response.json()
 
@@ -98,7 +93,7 @@ def get_pull_requests_by_date(repo: str, start_date: str, end_date: str):
     params = {'state': 'all', 'per_page': 100, 'sort': 'updated', 'direction': 'desc'}
 
     try:
-        response = requests.get(url, headers=get_github_headers(), params=params)
+        response = requests.get(url, headers=get_github_headers(), params=params)  # type: ignore
         response.raise_for_status()
         all_pull_requests = response.json()
 

@@ -35,20 +35,25 @@ jobs:
 
     - name: Run integration tests
       run: |
-        # Wait for service to be fully ready with health check
-        echo "Waiting for service to be ready..."
-        kubectl run test-readiness --image=curlimages/curl --rm --restart=Never -- \
-          sh -c "for i in \$(seq 1 30); do curl -f http://github-repo-api-service/health && echo 'Service ready!' && break || sleep 1; done"
+        # Create a single test pod for all tests
+        kubectl run integration-test --image=curlimages/curl --restart=Never -- sleep 300
+        kubectl wait --for=condition=ready pod/integration-test --timeout=60s
         
+        # Wait for service to be ready
+        echo "Waiting for service to be ready..."
+        kubectl exec integration-test -- sh -c "for i in \$(seq 1 30); do curl -f http://github-repo-api-service/health && echo 'Service ready!' && break || sleep 1; done"
+        
+        # Run all API tests
         echo "Testing pull requests endpoint..."
-        kubectl run test-prs --image=curlimages/curl --rm --restart=Never -- \
-          curl -f "http://github-repo-api-service/pull-requests/3?repo=microsoft/vscode"
+        kubectl exec integration-test -- curl -f "http://github-repo-api-service/pull-requests/3?repo=microsoft/vscode"
         
         echo "Testing contributors endpoint..."
-        kubectl run test-contributors --image=curlimages/curl --rm --restart=Never -- \
-          curl -f "http://github-repo-api-service/contributors?repo=microsoft/vscode"
+        kubectl exec integration-test -- curl -f "http://github-repo-api-service/contributors?repo=microsoft/vscode"
         
-        echo "All integration tests passed!"
+        # Cleanup test pod
+        kubectl delete pod integration-test
+        
+        echo "Integration tests passed!"
 
     - name: Debug on failure
       if: failure()

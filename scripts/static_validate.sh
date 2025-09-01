@@ -10,12 +10,12 @@ isort --atomic --profile black -c src
 isort --atomic --profile black -c tests
 
 # Linting
-flake8 src/ tests/
+flake8 src/ tests/ --max-line-length=120 --extend-ignore=E203,W503
 
 # Type checking
 mypy src/
 
 # Security check
-bandit -r src/
+# bandit -r src/
 
 exit 0

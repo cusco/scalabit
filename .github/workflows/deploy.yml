@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy-to-minikube:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Build Docker image
+      run: docker build -t github-repo-api:latest .
+
+    - name: Start minikube
+      uses: medyagh/setup-minikube@master
+      with:
+        minikube-version: 'latest'
+        kubernetes-version: 'latest'
+
+    - name: Deploy to minikube
+      run: |
+        # Load image into minikube
+        minikube image load github-repo-api:latest
+        
+        # Apply Kubernetes manifests
+        kubectl apply -f k8s/
+        
+        # Wait for deployment to be ready
+        kubectl rollout status deployment/github-repo-api --timeout=300s
+
+    - name: Run integration tests
+      run: |
+        # Wait for service to be fully ready with health check
+        echo "Waiting for service to be ready..."
+        kubectl run test-readiness --image=curlimages/curl --rm --restart=Never -- \
+          sh -c "for i in \$(seq 1 30); do curl -f http://github-repo-api-service/health && echo 'Service ready!' && break || sleep 1; done"
+        
+        echo "Testing pull requests endpoint..."
+        kubectl run test-prs --image=curlimages/curl --rm --restart=Never -- \
+          curl -f "http://github-repo-api-service/pull-requests/3?repo=microsoft/vscode"
+        
+        echo "Testing contributors endpoint..."
+        kubectl run test-contributors --image=curlimages/curl --rm --restart=Never -- \
+          curl -f "http://github-repo-api-service/contributors?repo=microsoft/vscode"
+        
+        echo "All integration tests passed!"
+
+    - name: Debug on failure
+      if: failure()
+      run: |
+        echo "=== Minikube status ==="
+        minikube status
+        
+        echo "=== Pods status ==="
+        kubectl get pods -o wide
+        
+        echo "=== Services ==="
+        kubectl get services
+        
+        echo "=== Pod logs ==="
+        kubectl logs -l app=github-repo-api --tail=50
+        
+        echo "=== Service endpoints ==="
+        kubectl get endpoints
+        
+        echo "=== Docker images in minikube ==="
+        minikube image list | grep github-repo-api

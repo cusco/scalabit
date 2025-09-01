@@ -1,0 +1,16 @@
+# Development dependencies
+-r base.txt
+
+# Testing
+pytest==8.4.1
+pytest-cov==6.2.1
+httpx==0.28.1
+
+# Code quality
+black==25.1.0
+flake8==7.3.0
+Flake8-pyproject==1.2.3
+isort==6.0.1
+mypy==1.7.1
+types-requests==2.32.4.20250809
+bandit==1.8.6

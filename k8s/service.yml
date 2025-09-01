@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-repo-api-service
+  labels:
+    app: github-repo-api
+spec:
+  selector:
+    app: github-repo-api
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP

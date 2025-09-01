@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-repo-api
+  labels:
+    app: github-repo-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: github-repo-api
+  template:
+    metadata:
+      labels:
+        app: github-repo-api
+    spec:
+      containers:
+      - name: api
+        image: github-repo-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: token
+              optional: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

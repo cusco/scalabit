@@ -4,7 +4,8 @@ import pytest
 import requests
 from fastapi.testclient import TestClient
 
-from src.api import app, parse_repo_url
+from src.api import app
+from src.github_service import parse_repo_url
 
 client = TestClient(app)
 
@@ -56,7 +57,7 @@ class TestHealthEndpoint:
 
 class TestPullRequestsEndpoint:
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_pull_requests_success(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = MOCK_PULL_REQUESTS
@@ -74,7 +75,7 @@ class TestPullRequestsEndpoint:
         assert response_data["pull_requests"][0]["title"] == "Add new feature"
         assert response_data["pull_requests"][0]["author"] == "testuser"
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_pull_requests_with_github_url(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = MOCK_PULL_REQUESTS[:1]
@@ -97,7 +98,7 @@ class TestPullRequestsEndpoint:
         assert response.status_code == 400
         assert "Invalid repo format" in response.json()["detail"]
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_pull_requests_github_api_error(self, mock_get):
         mock_get.side_effect = requests.RequestException("API Error")
 
@@ -108,7 +109,7 @@ class TestPullRequestsEndpoint:
 
 class TestPullRequestsByDateEndpoint:
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_pull_requests_by_date_success(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = MOCK_PULL_REQUESTS
@@ -141,7 +142,7 @@ class TestPullRequestsByDateEndpoint:
 
 class TestContributorsEndpoint:
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_contributors_success(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = MOCK_CONTRIBUTORS
@@ -160,7 +161,7 @@ class TestContributorsEndpoint:
         assert response_data["contributors"][1]["login"] == "anotheruser"
         assert response_data["contributors"][1]["contributions"] == 75
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_contributors_with_github_url(self, mock_get):
         mock_response = Mock()
         mock_response.json.return_value = MOCK_CONTRIBUTORS
@@ -182,7 +183,7 @@ class TestContributorsEndpoint:
         assert response.status_code == 400
         assert "Invalid repo format" in response.json()["detail"]
 
-    @patch('src.api.requests.get')
+    @patch('src.github_service.requests.get')
     def test_get_contributors_github_api_error(self, mock_get):
         mock_get.side_effect = requests.RequestException("API Error")
 

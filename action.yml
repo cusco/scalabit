@@ -1,0 +1,38 @@
+name: 'GitHub Repo Info'
+description: 'Get pull requests and contributors information from any GitHub repository'
+
+inputs:
+  repo:
+    description: 'Repository to analyze (owner/repo or https://github.com/owner/repo). Defaults to current repository if not specified.'
+    required: false
+  operation:
+    description: 'Operation to perform: 1 (N pull requests), 2 (pull requests by date), 3 (contributors)'
+    required: true
+    default: '1'
+  count:
+    description: 'Number of pull requests to fetch (for operation 1)'
+    required: false
+    default: '5'
+  start_date:
+    description: 'Start date for pull requests (YYYY-MM-DD, for operation 2)'
+    required: false
+  end_date:
+    description: 'End date for pull requests (YYYY-MM-DD, for operation 2)'
+    required: false
+  github_token:
+    description: 'GitHub token for API access (optional, increases rate limits)'
+    required: false
+
+outputs:
+  result:
+    description: 'JSON result containing the requested information'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ inputs.github_token }}
+
+branding:
+  icon: 'git-branch'
+  color: 'blue'

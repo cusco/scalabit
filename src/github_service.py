@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 import requests
 
@@ -67,28 +66,49 @@ def get_pull_requests(repo_url, count):
 
 def get_pull_requests_by_date(repo_url, start_date, end_date):
     """Get PR's within a date range."""
+
+    # http://localhost:5000/pull-requests-by-date?repo=microsoft/vscode&start_date=2025-08-20&end_date=2025-08-30
     owner, repo_name = parse_repo_url(repo_url)
-    start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
-    end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
 
-    url = f"{GITHUB_API_URL}/repos/{owner}/{repo_name}/pulls"
-    params = {'state': 'all', 'per_page': 100, 'sort': 'updated', 'direction': 'desc'}
+    # Let's use the search/issues endpoint that supports date filtering
+    # https://docs.github.com/en/rest/search/search?apiVersion=2022-11-28
+    # https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax
+    url = f"{GITHUB_API_URL}/search/issues"
+    query = f"repo:{owner}/{repo_name} type:pr created:{start_date}..{end_date}"
+    # Ambiguous date type requirement
+    # query = f"repo:{owner}/{repo_name} type:pr updated:{start_date}..{end_date}"
+    # query = f"repo:{owner}/{repo_name} type:pr pushed:{start_date}..{end_date}"
 
-    response = requests.get(url, headers=get_github_headers(), params=params, timeout=30)
-    response.raise_for_status()
-    all_pull_requests = response.json()
+    params = {'q': query, 'sort': 'updated', 'order': 'desc', 'per_page': 100}
 
-    matching_prs = []
-    for pull_request in all_pull_requests:
-        pr_date = datetime.strptime(pull_request['updated_at'][:10], '%Y-%m-%d')
-        if start_datetime <= pr_date <= end_datetime:
-            matching_prs.append(format_pull_request(pull_request))
+    all_prs = []
+    page = 1
+
+    while page <= 100:  # Limit to 100 pages (10,000 results max)
+        params['page'] = page
+        response = requests.get(url, headers=get_github_headers(), params=params, timeout=30)
+        response.raise_for_status()
+
+        search_results = response.json()
+        pull_requests = search_results.get('items', [])
+
+        if not pull_requests:
+            break
+
+        for pr in pull_requests:
+            all_prs.append(format_pull_request(pr))
+
+        # Last page Stop
+        if len(pull_requests) < 100:
+            break
+
+        page += 1
 
     return {
         'repository': f"{owner}/{repo_name}",
         'date_range': f"{start_date} to {end_date}",
-        'count': len(matching_prs),
-        'pull_requests': matching_prs,
+        'count': len(all_prs),
+        'pull_requests': all_prs,
     }
 
 

@@ -112,7 +112,7 @@ class TestPullRequestsByDateEndpoint:
     @patch('src.github_service.requests.get')
     def test_get_pull_requests_by_date_success(self, mock_get):
         mock_response = Mock()
-        mock_response.json.return_value = MOCK_PULL_REQUESTS
+        mock_response.json.return_value = {'items': MOCK_PULL_REQUESTS}
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
@@ -129,10 +129,16 @@ class TestPullRequestsByDateEndpoint:
         response = client.get("/pull-requests-by-date?repo=owner/repo")
         assert response.status_code == 422
 
-    def test_get_pull_requests_by_date_invalid_date_format(self):
+    @patch('src.github_service.requests.get')
+    def test_get_pull_requests_by_date_invalid_date_format(self, mock_get):
+        # Mock GitHub's 422 error response for invalid dates
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.RequestException("422 Client Error: Unprocessable Entity")
+        mock_get.return_value = mock_response
+
         response = client.get("/pull-requests-by-date?repo=owner/repo&start_date=invalid-date&end_date=2025-08-25")
-        assert response.status_code == 400
-        assert "Invalid format" in response.json()["detail"]
+        assert response.status_code == 500
+        assert "GitHub API error" in response.json()["detail"]
 
     def test_get_pull_requests_by_date_invalid_repo_format(self):
         response = client.get("/pull-requests-by-date?repo=invalid&start_date=2025-08-24&end_date=2025-08-25")

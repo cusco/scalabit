@@ -119,17 +119,29 @@ def get_contributors(repo_url):
     url = f"{GITHUB_API_URL}/repos/{owner}/{repo_name}/contributors"
     params = {'per_page': 100}
 
-    # Let's not go through pages, use the first 100 for POC.
-    response = requests.get(url, headers=get_github_headers(), params=params, timeout=30)
-    response.raise_for_status()
-    contributors = response.json()
+    all_contributors = []
+    page = 1
 
-    formatted_contributors = []
-    for contributor in contributors:
-        formatted_contributors.append(format_contributor(contributor))
+    while page <= 100:  # Limit to 100 pages (10,000 results max)
+        params['page'] = page
+        response = requests.get(url, headers=get_github_headers(), params=params, timeout=30)
+        response.raise_for_status()
+        contributors = response.json()
+
+        if not contributors:
+            break
+
+        for contributor in contributors:
+            all_contributors.append(format_contributor(contributor))
+
+        # Check if we've reached the last page
+        if len(contributors) < 100:
+            break
+
+        page += 1
 
     return {
         'repository': f"{owner}/{repo_name}",
-        'count': len(formatted_contributors),
-        'contributors': formatted_contributors,
+        'count': len(all_contributors),
+        'contributors': all_contributors,
     }
